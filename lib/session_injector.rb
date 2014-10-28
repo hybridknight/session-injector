@@ -132,7 +132,7 @@ module Rack
         # cool, token is not expired
         # is it for the right domain?
         this_request = Rack::Request.new(env)
-        raise InvalidHandshake, "target domain mismatch" unless handshake[:tgt_domain] == this_request.host
+        raise InvalidHandshake, "target domain mismatch: #{handshake[:tgt_domain]} isnt #{this_request.host}" unless handshake[:tgt_domain] == this_request.host
 
         # it's FOR the right domain
         # is it FROM the right domain?
@@ -143,7 +143,7 @@ module Rack
         # finally, is this the same client that was associated with the source session?
         # this really should be the case unless some shenanigans is going on (either somebody is replaying the token
         # or there is some client balancing or proxying going on)
-        raise InvalidHandshake, "client ip mismatch" unless handshake[:request_ip] == this_request.ip
+        raise InvalidHandshake, "client ip mismatch: #{handshake[:request_ip]} isnt #{this_request.ip}" unless handshake[:request_ip] == this_request.ip
       end
 
       private
