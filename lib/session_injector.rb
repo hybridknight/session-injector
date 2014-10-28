@@ -17,7 +17,9 @@ module Rack
         # specify that as the value for this middleware
         :key => ActionDispatch::Session::AbstractStore::DEFAULT_OPTIONS[:key],
         :token_lifetime => 5, # five seconds should be enough
-        :die_on_handshake_failure => true
+        :die_on_handshake_failure => true,
+        :check_target_domain => true,
+        :check_request_ip => true
       }
 
       # the env key we will use to stash ourselves for downstream access
@@ -45,6 +47,8 @@ module Rack
         @token_key = options[:token_key] || generated_token_key
         @enforced_lifetime = options[:token_lifetime]
         @die_on_handshake_failure = options[:die_on_handshake_failure]
+        @check_target_domain = options[:check_target_domain]
+        @check_request_ip = options[:check_request_ip]
       end
 
       def call(env)
@@ -138,12 +142,16 @@ module Rack
         # is it FROM the right domain?
         # SKIP THIS CHECK
         # 'referrer' is not reliable, is up to the client to send, and we may not always be coming from a redirect
-        # raise InvalidHandshake, "source domain mismatch" unless handshake[:src_domain] == URI::parse(this_request.referrer).host
+        if @check_target_domain
+          raise InvalidHandshake, "source domain mismatch" unless handshake[:src_domain] == URI::parse(this_request.referrer).host
+        end
 
         # finally, is this the same client that was associated with the source session?
         # this really should be the case unless some shenanigans is going on (either somebody is replaying the token
         # or there is some client balancing or proxying going on)
-        raise InvalidHandshake, "client ip mismatch: #{handshake[:request_ip]} isnt #{this_request.ip}" unless handshake[:request_ip] == this_request.ip
+        if @check_request_ip
+          raise InvalidHandshake, "client ip mismatch: #{handshake[:request_ip]} isnt #{this_request.ip}" unless handshake[:request_ip] == this_request.ip
+        end
       end
 
       private
